@@ -7,6 +7,7 @@ import Groq from "groq-sdk";
 dotenv.config();
 
 const app = express();
+
 app.use(cors({ origin: "*" }));
 app.use(express.json());
 
@@ -16,18 +17,23 @@ const PORT = process.env.PORT || 3000;
 console.log("🚀 GEMINI KEY:", !!process.env.GEMINI_API_KEY);
 console.log("🚀 GROQ KEY:", !!process.env.GROQ_API_KEY);
 
-// SAFE INIT (NO CRASH IF ENV MISSING)
+// ================= INIT =================
 const genAI = process.env.GEMINI_API_KEY
   ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
   : null;
 
 const groq = process.env.GROQ_API_KEY
-  ? new Groq({ apiKey: process.env.GROQ_API_KEY })
+  ? new Groq({
+      apiKey: process.env.GROQ_API_KEY
+    })
   : null;
 
 // ================= HEALTH =================
 app.get("/", (req, res) => {
-  res.json({ status: "OK", message: "TeeniWood API Running" });
+  res.json({
+    status: "OK",
+    message: "TeeniWood API Running"
+  });
 });
 
 app.get("/health", (req, res) => {
@@ -39,10 +45,12 @@ app.get("/health", (req, res) => {
 });
 
 app.get("/api/test", (req, res) => {
-  res.json({ success: true });
+  res.json({
+    success: true
+  });
 });
 
-// ================= SAFE FALLBACK =================
+// ================= SAFE CONTENT =================
 function safeContent(topic = "Demo", raw = "") {
   return {
     title: `🔥 ${topic}`,
@@ -50,10 +58,14 @@ function safeContent(topic = "Demo", raw = "") {
     seo_keywords: [topic, "viral", "ai"],
     hashtags: ["#viral", "#ai", "#shorts"],
     tags: ["youtube", "ai"],
-    hooks: ["🔥 Watch till end!", "😱 Crazy!", "🚀 Viral story!"],
+    hooks: [
+      "🔥 Watch till end!",
+      "😱 Crazy!",
+      "🚀 Viral story!"
+    ],
     script: [
       {
-        scene: "0-5",
+        scene: "0-5 sec",
         text: `Hook: ${topic}`,
         voice_over: "Start",
         visual: "cinematic"
@@ -62,10 +74,15 @@ function safeContent(topic = "Demo", raw = "") {
   };
 }
 
-// ================= MAIN API =================
+// ================= GENERATE =================
 app.post("/api/generate", async (req, res) => {
   try {
-    const { topic, engine = "gemini", language = "Hindi" } = req.body;
+
+    const {
+      topic,
+      engine = "gemini",
+      language = "Hindi"
+    } = req.body;
 
     if (!topic) {
       return res.json({
@@ -77,18 +94,18 @@ app.post("/api/generate", async (req, res) => {
     const seed = Date.now();
     let text = "";
 
-    // ================= GEMINI =================
+    // ==================================================
+    // GEMINI
+    // ==================================================
     if (engine === "gemini") {
 
       if (!genAI) {
-        throw new Error("Gemini API Key missing in Render ENV");
+        throw new Error(
+          "Gemini API Key missing in Render ENV"
+        );
       }
 
-      const model = genAI.getGenerativeModel({
-        model: "gemini-1.5-flash"
-      });
-
-      const result = await model.generateContent(`
+      const prompt = `
 Return ONLY valid JSON.
 
 Topic: ${topic}
@@ -104,36 +121,114 @@ Seed: ${seed}
   "hooks": [],
   "script": []
 }
-`);
+`;
+
+      const models = [
+        "gemini-1.5-flash",
+        "gemini-1.5-pro",
+        "gemini-1.5-flash-8b"
+      ];
+
+      let result = null;
+      let lastError = null;
+
+      for (const modelName of models) {
+        try {
+
+          console.log(
+            "🔍 Trying Gemini model:",
+            modelName
+          );
+
+          const model =
+            genAI.getGenerativeModel({
+              model: modelName
+            });
+
+          result =
+            await model.generateContent(prompt);
+
+          console.log(
+            "✅ Gemini Success:",
+            modelName
+          );
+
+          break;
+
+        } catch (err) {
+
+          console.log(
+            "❌ Gemini Failed:",
+            modelName
+          );
+
+          console.log(
+            "❌ Reason:",
+            err.message
+          );
+
+          lastError = err;
+        }
+      }
+
+      if (!result) {
+        throw new Error(
+          `All Gemini models failed. Last Error: ${
+            lastError?.message || "Unknown Error"
+          }`
+        );
+      }
 
       const response = await result.response;
       text = response.text();
     }
 
-    // ================= GROQ =================
+    // ==================================================
+    // GROQ
+    // ==================================================
     else {
 
       if (!groq) {
-        throw new Error("Groq API Key missing in Render ENV");
+        throw new Error(
+          "Groq API Key missing in Render ENV"
+        );
       }
 
-      const completion = await groq.chat.completions.create({
-        model: "llama-3.3-70b-versatile",
-        messages: [
-          {
-            role: "user",
-            content: `Return ONLY JSON.
+      const completion =
+        await groq.chat.completions.create({
+          model: "llama-3.3-70b-versatile",
+          messages: [
+            {
+              role: "user",
+              content: `
+Return ONLY valid JSON.
 
 Topic: ${topic}
-Seed: ${seed}`
-          }
-        ]
-      });
+Language: ${language}
+Seed: ${seed}
 
-      text = completion.choices[0].message.content;
+{
+  "title": "",
+  "description": "",
+  "seo_keywords": [],
+  "hashtags": [],
+  "tags": [],
+  "hooks": [],
+  "script": []
+}
+`
+            }
+          ]
+        });
+
+      text =
+        completion?.choices?.[0]?.message?.content ||
+        "";
     }
 
-    // ================= CLEAN JSON =================
+    // ==================================================
+    // CLEAN JSON
+    // ==================================================
     let cleaned = (text || "")
       .replace(/```json/g, "")
       .replace(/```/g, "")
@@ -143,9 +238,15 @@ Seed: ${seed}`
     let data;
 
     try {
+
       data = JSON.parse(cleaned);
+
     } catch (e) {
-      console.log("❌ RAW OUTPUT:", text);
+
+      console.log("❌ JSON Parse Failed");
+      console.log("❌ RAW OUTPUT:");
+      console.log(text);
+
       data = safeContent(topic, text);
     }
 
@@ -155,17 +256,28 @@ Seed: ${seed}`
     });
 
   } catch (error) {
-    console.log("🔥 ERROR:", error.message);
+
+    console.error(
+      "🔥 FULL ERROR:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
       error: error.message,
-      content: safeContent(req.body?.topic, error.message)
+      details: String(error),
+      content: safeContent(
+        req.body?.topic || "Demo",
+        error.message
+      )
     });
   }
 });
 
 // ================= START =================
 app.listen(PORT, () => {
-  console.log("🚀 Server running on port", PORT);
+  console.log(
+    "🚀 Server running on port",
+    PORT
+  );
 });
