@@ -12,6 +12,10 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 
+// DEBUG ENV CHECK
+console.log("GEMINI KEY LOADED:", !!process.env.GEMINI_API_KEY);
+console.log("GROQ KEY LOADED:", !!process.env.GROQ_API_KEY);
+
 // AI SETUP
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -21,26 +25,25 @@ app.get("/", (req, res) => {
   res.json({ status: "OK", time: new Date().toISOString() });
 });
 
-// TEST
 app.get("/api/test", (req, res) => {
   res.json({ success: true });
 });
 
 // SAFE FALLBACK
-function safeContent(topic, raw = "") {
+function safeContent(topic = "Demo", raw = "") {
   return {
-    title: `🔥 ${topic || "Viral Story"}`,
-    description: raw || `AI generated content for ${topic}`,
-    seo_keywords: [topic, "viral", "shorts"],
-    hashtags: ["#viral", "#teeniwood", "#ai"],
-    tags: ["youtube", "shorts", "ai video"],
-    hooks: ["🔥 Watch till end!", "😱 Crazy story!", "🚀 Viral content!"],
+    title: `🔥 ${topic}`,
+    description: raw || `AI generated content`,
+    seo_keywords: [topic, "viral", "ai"],
+    hashtags: ["#viral", "#ai", "#shorts"],
+    tags: ["youtube", "ai", "video"],
+    hooks: ["🔥 Watch till end!", "😱 Must see!", "🚀 Viral story!"],
     script: [
       {
         scene: "0-5",
-        text: `Hook about ${topic}`,
+        text: `Hook: ${topic}`,
         voice_over: "Start",
-        visual: "cinematic intro"
+        visual: "cinematic"
       }
     ]
   };
@@ -54,30 +57,25 @@ app.post("/api/generate", async (req, res) => {
     if (!topic) {
       return res.json({
         success: false,
-        content: safeContent("Demo", "No topic provided")
+        content: safeContent("Demo")
       });
     }
 
-    const seed = Date.now(); // 🔥 randomness fix
+    const seed = Date.now();
     let text = "";
 
     // ================= GEMINI =================
     if (engine === "gemini") {
       const model = genAI.getGenerativeModel({
-        model="gemini-2.5-flash"
+        model: "gemini-1.5-flash"
       });
 
-      const result = await model.generateContent(
-`Return ONLY valid JSON.
+      const result = await model.generateContent(`
+Return ONLY valid JSON.
 
-IMPORTANT:
-- Make unique viral content
-- Do not repeat old answers
-- Be creative and emotional
-
-Seed: ${seed}
 Topic: ${topic}
 Language: ${language}
+Seed: ${seed}
 
 {
   "title": "",
@@ -87,8 +85,8 @@ Language: ${language}
   "tags": [],
   "hooks": [],
   "script": []
-}`
-      );
+}
+`);
 
       const response = await result.response;
       text = response.text();
@@ -101,12 +99,10 @@ Language: ${language}
         messages: [
           {
             role: "user",
-            content: `Create UNIQUE viral JSON content.
+            content: `Return ONLY JSON.
 
 Topic: ${topic}
-Seed: ${seed}
-
-Return ONLY JSON.`
+Seed: ${seed}`
           }
         ]
       });
@@ -114,7 +110,7 @@ Return ONLY JSON.`
       text = completion.choices[0].message.content;
     }
 
-    // CLEAN
+    // CLEAN JSON
     let cleaned = (text || "")
       .replace(/```json/g, "")
       .replace(/```/g, "")
@@ -124,15 +120,12 @@ Return ONLY JSON.`
 
     try {
       data = JSON.parse(cleaned);
-
-      if (!data.title) throw new Error("Invalid JSON");
     } catch (e) {
-      console.log("RAW AI:", text);
-
+      console.log("RAW OUTPUT:", text);
       data = safeContent(topic, text);
     }
 
-    return res.json({
+    res.json({
       success: true,
       content: data
     });
@@ -140,13 +133,13 @@ Return ONLY JSON.`
   } catch (error) {
     console.log("ERROR:", error.message);
 
-    return res.json({
-      success: true,
-      content: safeContent(req.body?.topic, error.message)
+    res.status(500).json({
+      success: false,
+      error: error.message
     });
   }
 });
 
 app.listen(PORT, () => {
-  console.log("TeeniWood AI running on port", PORT);
+  console.log("🚀 Server running on port", PORT);
 });
