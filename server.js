@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import Groq from "groq-sdk";
 
 dotenv.config();
 
@@ -10,6 +12,13 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
+
+// 🔥 AI SETUP
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY
+});
 
 // 🟢 HEALTH CHECK
 app.get("/", (req, res) => {
@@ -27,10 +36,11 @@ app.get("/api/test", (req, res) => {
   });
 });
 
-// 🟢 MAIN GENERATE API
+// 🟢 MAIN GENERATE API (DUAL AI)
 app.post("/api/generate", async (req, res) => {
   try {
-    const { topic, niche, engine } = req.body;
+
+    const { topic, niche, engine, language } = req.body;
 
     if (!topic) {
       return res.status(400).json({
@@ -38,67 +48,88 @@ app.post("/api/generate", async (req, res) => {
       });
     }
 
-    const result = {
-      title: `🔥 ${topic} Viral Story`,
-      topic: topic,
-      niche: niche || "General",
-      engine: engine || "groq",
+    let text = "";
 
-      description: `This is a viral AI generated story for ${topic}. Perfect for YouTube & Reels 🚀`,
+    // 🔵 GEMINI
+    if (!engine || engine === "gemini") {
 
-      hashtags: [
-        "#viral",
-        "#teeniwood",
-        "#ai",
-        "#youtube",
-        "#reels"
-      ],
+      const model = genAI.getGenerativeModel({
+        model: "gemini-1.5-flash"
+      });
 
-      tags: [
-        "viral story",
-        "ai video",
-        "youtube shorts",
-        "trending",
-        "teeniwood ai"
-      ],
+      const result = await model.generateContent(`
+Generate viral YouTube Shorts content in ${language || "Hindi"}.
 
-      hooks: [
-        "😱 You won't believe this story!",
-        "🔥 Emotional viral twist incoming!",
-        "🚀 This will blow your mind!"
-      ],
+Topic: ${topic}
 
-      script: [
-        {
-          scene: "0-5 sec",
-          text: `Hook scene about ${topic}`,
-          visual: "Cinematic dramatic intro"
-        },
-        {
-          scene: "5-10 sec",
-          text: "Story begins with emotional setup",
-          visual: "Village / cinematic background"
-        },
-        {
-          scene: "10-15 sec",
-          text: "Conflict and struggle begins",
-          visual: "Dramatic tension scene"
-        }
-      ]
-    };
+Return ONLY JSON:
+{
+  "title": "",
+  "description": "",
+  "seo_keywords": [],
+  "hashtags": [],
+  "tags": [],
+  "hooks": [],
+  "viral_score": 0,
+  "script": []
+}
+`);
+
+      const response = await result.response;
+      text = response.text();
+    }
+
+    // 🟢 GROQ
+    else if (engine === "groq") {
+
+      const completion = await groq.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          {
+            role: "user",
+            content: `Create viral YouTube Shorts JSON for topic: ${topic}`
+          }
+        ]
+      });
+
+      text = completion.choices[0].message.content;
+    }
+
+    // 🧹 CLEAN RESPONSE
+    text = text
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+
+    let parsed;
+
+    try {
+      parsed = JSON.parse(text);
+    } catch (e) {
+      parsed = {
+        title: `🔥 ${topic}`,
+        description: text,
+        seo_keywords: [],
+        hashtags: [],
+        tags: [],
+        hooks: [],
+        viral_score: 50,
+        script: []
+      };
+    }
 
     res.json({
       success: true,
-      content: result
+      engine: engine || "gemini",
+      content: parsed
     });
 
   } catch (error) {
-
     console.error(error);
 
     res.status(500).json({
-      error: "Server error",
-      details: error.message
+      success: false,
+      error: error.message
     });
   }
 });
