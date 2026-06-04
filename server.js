@@ -19,7 +19,7 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY
 });
 
-// HEALTH
+// HEALTH CHECK
 app.get("/", (req, res) => {
   res.json({
     status: "TeeniWood AI Backend Running 🚀",
@@ -27,7 +27,7 @@ app.get("/", (req, res) => {
   });
 });
 
-// TEST
+// TEST ROUTE
 app.get("/api/test", (req, res) => {
   res.json({
     success: true,
@@ -52,13 +52,12 @@ app.post("/api/generate", async (req, res) => {
 
     // GEMINI
     if (!engine || engine === "gemini") {
-
       const model = genAI.getGenerativeModel({
         model: "gemini-1.5-flash"
       });
 
       const result = await model.generateContent(`
-Return ONLY JSON.
+Return ONLY valid JSON (no markdown, no explanation).
 
 Topic: ${topic}
 Language: ${language || "Hindi"}
@@ -80,13 +79,12 @@ Language: ${language || "Hindi"}
 
     // GROQ
     else if (engine === "groq") {
-
       const completion = await groq.chat.completions.create({
         model: "llama-3.3-70b-versatile",
         messages: [
           {
             role: "user",
-            content: `Create viral JSON for topic: ${topic}`
+            content: `Return STRICT JSON ONLY for topic: ${topic}`
           }
         ]
       });
@@ -94,40 +92,57 @@ Language: ${language || "Hindi"}
       text = completion.choices[0].message.content;
     }
 
-    // CLEAN
-    text = text
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
-
+    // CLEAN RESPONSE
     let parsed;
 
     try {
-      parsed = JSON.parse(text);
+      const cleanText = (text || "")
+        .replace(/```json/g, "")
+        .replace(/```/g, "")
+        .trim();
+
+      if (!cleanText) throw new Error("Empty response");
+
+      parsed = JSON.parse(cleanText);
+
     } catch (e) {
+      console.log("⚠ RAW AI OUTPUT:", text);
+
       parsed = {
-        title: `🔥 ${topic}`,
-        description: text,
-        seo_keywords: [],
-        hashtags: [],
-        tags: [],
-        hooks: [],
-        script: []
+        title: `🔥 ${topic} Viral Story`,
+        description: text || "AI response failed",
+        seo_keywords: [`${topic}`, "viral", "youtube shorts"],
+        hashtags: ["#viral", "#teeniwood", "#ai"],
+        tags: ["viral", "shorts", "ai video"],
+        hooks: [
+          "😱 You won't believe this!",
+          "🔥 Emotional twist!",
+          "🚀 Watch till end!"
+        ],
+        script: [
+          {
+            scene: "0-5 sec",
+            text: `Hook about ${topic}`,
+            voice_over: "Start of viral story",
+            visual: "Cinematic intro"
+          }
+        ]
       };
     }
 
-    // 🔥 IMPORTANT FIX (frontend safe)
-    res.json({
+    // 🔥 ALWAYS SAFE RESPONSE (FRONTEND FIX)
+    return res.json({
       success: true,
-      content: parsed   // <-- ALWAYS SAME FORMAT
+      content: parsed
     });
 
   } catch (error) {
     console.error(error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
+      content: null
     });
   }
 });
