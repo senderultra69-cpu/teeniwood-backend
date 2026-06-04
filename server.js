@@ -12,7 +12,7 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 
-// Gemini setup (ADDED)
+// Gemini setup (SAFE ADD)
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // 🟢 HEALTH CHECK
@@ -31,7 +31,7 @@ app.get("/api/test", (req, res) => {
   });
 });
 
-// 🟢 GEMINI TEST ROUTE (ADDED)
+// 🟢 GEMINI TEST ROUTE
 app.get("/api/gemini-test", async (req, res) => {
   try {
     const model = genAI.getGenerativeModel({
@@ -54,7 +54,7 @@ app.get("/api/gemini-test", async (req, res) => {
   }
 });
 
-// 🟢 MAIN GENERATE API (YOUR ORIGINAL + ADDONS)
+// 🟢 MAIN GENERATE API (YOUR BASE + SAFE ADDITIONS)
 app.post("/api/generate", async (req, res) => {
   try {
 
@@ -71,7 +71,7 @@ app.post("/api/generate", async (req, res) => {
     });
 
     const prompt = `
-Create viral YouTube Shorts content.
+Generate viral YouTube Shorts content.
 
 Topic: ${topic}
 Language: ${language || "Hindi"}
