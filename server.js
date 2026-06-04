@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import Groq from "groq-sdk";
 
 dotenv.config();
 
@@ -11,98 +12,126 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 
-// 🟢 HEALTH CHECK
+const groq = new Groq({
+apiKey: process.env.GROQ_API_KEY
+});
+
+// Health Check
 app.get("/", (req, res) => {
-  res.json({
-    status: "TeeniWood AI Backend Running 🚀",
-    time: new Date().toISOString()
-  });
+res.json({
+status: "TeeniWood AI Backend Running 🚀",
+time: new Date().toISOString()
+});
 });
 
-// 🟢 TEST ROUTE
+// Test Route
 app.get("/api/test", (req, res) => {
-  res.json({
-    success: true,
-    message: "Backend Working 🚀"
-  });
+res.json({
+success: true,
+message: "Backend Working 🚀"
+});
 });
 
-// 🟢 MAIN GENERATE API
+// AI Generate Route
 app.post("/api/generate", async (req, res) => {
-  try {
-    const { topic, niche, engine } = req.body;
 
-    if (!topic) {
-      return res.status(400).json({
-        error: "Topic required"
-      });
-    }
+try {
 
-    const result = {
-      title: `🔥 ${topic} Viral Story`,
-      topic: topic,
-      niche: niche || "General",
-      engine: engine || "groq",
+```
+const { topic } = req.body;
 
-      description: `This is a viral AI generated story for ${topic}. Perfect for YouTube & Reels 🚀`,
+if (!topic) {
+  return res.status(400).json({
+    error: "Topic required"
+  });
+}
 
-      hashtags: [
-        "#viral",
-        "#teeniwood",
-        "#ai",
-        "#youtube",
-        "#reels"
-      ],
+const completion = await groq.chat.completions.create({
+  model: "llama-3.3-70b-versatile",
+  temperature: 0.8,
+  messages: [
+    {
+      role: "system",
+      content: `
+```
 
-      tags: [
-        "viral story",
-        "ai video",
-        "youtube shorts",
-        "trending",
-        "teeniwood ai"
-      ],
+Return ONLY valid JSON.
 
-      hooks: [
-        "😱 You won't believe this story!",
-        "🔥 Emotional viral twist incoming!",
-        "🚀 This will blow your mind!"
-      ],
+Format:
 
-      script: [
+{
+"title":"",
+"description":"",
+"hashtags":[],
+"tags":[],
+"hooks":[],
+"script":[]
+}
+`        },
         {
-          scene: "0-5 sec",
-          text: `Hook scene about ${topic}`,
-          visual: "Cinematic dramatic intro"
-        },
-        {
-          scene: "5-10 sec",
-          text: "Story begins with emotional setup",
-          visual: "Village / cinematic background"
-        },
-        {
-          scene: "10-15 sec",
-          text: "Conflict and struggle begins",
-          visual: "Dramatic tension scene"
-        }
-      ]
-    };
+          role: "user",
+          content:`
+Create viral YouTube content for:
 
-    res.json({
-      success: true,
-      content: result
-    });
+Topic: ${topic}
 
-  } catch (error) {
+Generate:
 
-    console.error(error);
+* SEO title
+* Description
+* Hashtags
+* Tags
+* 3 Hooks
+* 5 Script Scenes
 
-    res.status(500).json({
-      error: "Server error",
-      details: error.message
-    });
-  }
+Return JSON only.
+`
+}
+]
+});
+
+```
+const raw =
+  completion.choices[0].message.content;
+
+let parsed;
+
+try {
+  parsed = JSON.parse(raw);
+} catch {
+  parsed = {
+    title: topic,
+    description: raw,
+    hashtags: [],
+    tags: [],
+    hooks: [],
+    script: []
+  };
+}
+
+res.json({
+  success: true,
+  content: parsed
+});
+```
+
+} catch (error) {
+
+```
+console.error(error);
+
+res.status(500).json({
+  success: false,
+  error: error.message
+});
+```
+
+}
+
 });
 
 app.listen(PORT, () => {
-  console.log(`TeeniWood AI running on port ${PORT}`);
+console.log(
+`TeeniWood AI running on port ${PORT}`
+);
 });
