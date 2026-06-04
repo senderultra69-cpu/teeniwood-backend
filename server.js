@@ -6,15 +6,16 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 dotenv.config();
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 
-// Gemini Setup
+// Gemini setup
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// HEALTH CHECK
+// 🟢 HEALTH CHECK
 app.get("/", (req, res) => {
   res.json({
     status: "TeeniWood AI Backend Running 🚀",
@@ -22,7 +23,7 @@ app.get("/", (req, res) => {
   });
 });
 
-// TEST
+// 🟢 TEST ROUTE
 app.get("/api/test", (req, res) => {
   res.json({
     success: true,
@@ -30,7 +31,7 @@ app.get("/api/test", (req, res) => {
   });
 });
 
-// MAIN AI GENERATOR
+// 🟢 MAIN GENERATE API (UPGRADED)
 app.post("/api/generate", async (req, res) => {
   try {
 
@@ -47,9 +48,9 @@ app.post("/api/generate", async (req, res) => {
     });
 
     const prompt = `
-You are a professional viral YouTube Shorts AI.
+You are a viral YouTube Shorts AI.
 
-Generate highly engaging content in ${language || "Hindi"}.
+Generate content in ${language || "Hindi"}.
 
 TOPIC: ${topic}
 
@@ -58,8 +59,8 @@ Return ONLY valid JSON:
 {
   "title": "",
   "seo_keywords": [],
-  "viral_score": 0,
   "story": "",
+  "viral_score": 0,
   "hashtags": [],
   "tags": [],
   "hooks": [],
@@ -84,21 +85,9 @@ Return ONLY valid JSON:
       "time": "15-20 sec",
       "visual": "",
       "voice_over": ""
-    },
-    {
-      "time": "20-25 sec",
-      "visual": "",
-      "voice_over": ""
     }
   ]
 }
-
-Rules:
-- Must be emotional and viral
-- SEO optimized
-- Easy Hindi/English mix if needed
-- Each scene 5 seconds
-- Must include strong hook
 `;
 
     const result = await model.generateContent(prompt);
@@ -113,8 +102,8 @@ Rules:
       parsed = {
         title: topic,
         seo_keywords: [],
-        viral_score: 50,
         story: text,
+        viral_score: 50,
         hashtags: [],
         tags: [],
         hooks: [],
