@@ -1,4 +1,4 @@
-dekho ye he pahle ye diya tha aapne abhi dala to cal rha he import express from "express";
+import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 
