@@ -12,29 +12,34 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 
-// ================= ENV DEBUG =================
+// ================= ENV CHECK =================
 console.log("🚀 GEMINI KEY:", !!process.env.GEMINI_API_KEY);
 console.log("🚀 GROQ KEY:", !!process.env.GROQ_API_KEY);
 
-// ================= AI SETUP =================
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+// SAFE INIT (NO CRASH IF ENV MISSING)
+const genAI = process.env.GEMINI_API_KEY
+  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+  : null;
+
+const groq = process.env.GROQ_API_KEY
+  ? new Groq({ apiKey: process.env.GROQ_API_KEY })
+  : null;
 
 // ================= HEALTH =================
 app.get("/", (req, res) => {
-  res.json({ status: "OK", time: new Date().toISOString() });
+  res.json({ status: "OK", message: "TeeniWood API Running" });
+});
+
+app.get("/health", (req, res) => {
+  res.json({
+    status: "ok",
+    gemini: !!process.env.GEMINI_API_KEY,
+    groq: !!process.env.GROQ_API_KEY
+  });
 });
 
 app.get("/api/test", (req, res) => {
   res.json({ success: true });
-});
-
-// ================= DEBUG =================
-app.get("/debug", (req, res) => {
-  res.json({
-    gemini: !!process.env.GEMINI_API_KEY,
-    groq: !!process.env.GROQ_API_KEY
-  });
 });
 
 // ================= SAFE FALLBACK =================
@@ -74,6 +79,11 @@ app.post("/api/generate", async (req, res) => {
 
     // ================= GEMINI =================
     if (engine === "gemini") {
+
+      if (!genAI) {
+        throw new Error("Gemini API Key missing in Render ENV");
+      }
+
       const model = genAI.getGenerativeModel({
         model: "gemini-1.5-flash"
       });
@@ -102,6 +112,11 @@ Seed: ${seed}
 
     // ================= GROQ =================
     else {
+
+      if (!groq) {
+        throw new Error("Groq API Key missing in Render ENV");
+      }
+
       const completion = await groq.chat.completions.create({
         model: "llama-3.3-70b-versatile",
         messages: [
@@ -122,7 +137,7 @@ Seed: ${seed}`
     let cleaned = (text || "")
       .replace(/```json/g, "")
       .replace(/```/g, "")
-      .replace(/^[^{]*/, "") // FIX IMPORTANT
+      .replace(/^[^{]*/, "")
       .trim();
 
     let data;
@@ -140,7 +155,7 @@ Seed: ${seed}`
     });
 
   } catch (error) {
-    console.log("❌ FULL ERROR:", error);
+    console.log("🔥 ERROR:", error.message);
 
     return res.status(500).json({
       success: false,
@@ -150,7 +165,7 @@ Seed: ${seed}`
   }
 });
 
-// ================= START SERVER =================
+// ================= START =================
 app.listen(PORT, () => {
   console.log("🚀 Server running on port", PORT);
 });
