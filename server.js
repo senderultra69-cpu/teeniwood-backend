@@ -7,7 +7,7 @@ import Groq from "groq-sdk";
 dotenv.config();
 
 const app = express();
-app.use(cors());
+app.use(cors({ origin: "*" }));
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
@@ -26,7 +26,7 @@ app.get("/api/test", (req, res) => {
   res.json({ success: true });
 });
 
-// 🔥 SAFE FALLBACK BUILDER
+// SAFE FALLBACK
 function safeContent(topic, raw = "") {
   return {
     title: `🔥 ${topic || "Viral Story"}`,
@@ -34,16 +34,12 @@ function safeContent(topic, raw = "") {
     seo_keywords: [topic, "viral", "shorts"],
     hashtags: ["#viral", "#teeniwood", "#ai"],
     tags: ["youtube", "shorts", "ai video"],
-    hooks: [
-      "🔥 Watch till end!",
-      "😱 You won't believe this!",
-      "🚀 Viral story incoming!"
-    ],
+    hooks: ["🔥 Watch till end!", "😱 Crazy story!", "🚀 Viral content!"],
     script: [
       {
         scene: "0-5",
         text: `Hook about ${topic}`,
-        voice_over: "Start of story",
+        voice_over: "Start",
         visual: "cinematic intro"
       }
     ]
@@ -62,18 +58,24 @@ app.post("/api/generate", async (req, res) => {
       });
     }
 
+    const seed = Date.now(); // 🔥 randomness fix
     let text = "";
 
-    // GEMINI
+    // ================= GEMINI =================
     if (engine === "gemini") {
-      try {
-        const model = genAI.getGenerativeModel({
-          model: "gemini-1.5-flash"
-        });
+      const model = genAI.getGenerativeModel({
+        model: "gemini-1.5-flash"
+      });
 
-        const result = await model.generateContent(
+      const result = await model.generateContent(
 `Return ONLY valid JSON.
 
+IMPORTANT:
+- Make unique viral content
+- Do not repeat old answers
+- Be creative and emotional
+
+Seed: ${seed}
 Topic: ${topic}
 Language: ${language}
 
@@ -86,32 +88,30 @@ Language: ${language}
   "hooks": [],
   "script": []
 }`
-        );
+      );
 
-        const response = await result.response;
-        text = response.text();
-      } catch (e) {
-        console.log("Gemini error:", e.message);
-      }
+      const response = await result.response;
+      text = response.text();
     }
 
-    // GROQ
+    // ================= GROQ =================
     else {
-      try {
-        const completion = await groq.chat.completions.create({
-          model: "llama-3.3-70b-versatile",
-          messages: [
-            {
-              role: "user",
-              content: `Return ONLY JSON for topic: ${topic}`
-            }
-          ]
-        });
+      const completion = await groq.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          {
+            role: "user",
+            content: `Create UNIQUE viral JSON content.
 
-        text = completion.choices[0].message.content;
-      } catch (e) {
-        console.log("Groq error:", e.message);
-      }
+Topic: ${topic}
+Seed: ${seed}
+
+Return ONLY JSON.`
+          }
+        ]
+      });
+
+      text = completion.choices[0].message.content;
     }
 
     // CLEAN
@@ -125,9 +125,10 @@ Language: ${language}
     try {
       data = JSON.parse(cleaned);
 
-      // validation
       if (!data.title) throw new Error("Invalid JSON");
-    } catch {
+    } catch (e) {
+      console.log("RAW AI:", text);
+
       data = safeContent(topic, text);
     }
 
@@ -137,6 +138,8 @@ Language: ${language}
     });
 
   } catch (error) {
+    console.log("ERROR:", error.message);
+
     return res.json({
       success: true,
       content: safeContent(req.body?.topic, error.message)
@@ -145,5 +148,5 @@ Language: ${language}
 });
 
 app.listen(PORT, () => {
-  console.log("Server running on", PORT);
+  console.log("TeeniWood AI running on port", PORT);
 });
