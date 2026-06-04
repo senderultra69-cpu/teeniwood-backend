@@ -1,17 +1,20 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 dotenv.config();
 
 const app = express();
-
 app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 
-// 🟢 HEALTH CHECK
+// Gemini Setup
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+// HEALTH CHECK
 app.get("/", (req, res) => {
   res.json({
     status: "TeeniWood AI Backend Running 🚀",
@@ -19,7 +22,7 @@ app.get("/", (req, res) => {
   });
 });
 
-// 🟢 TEST ROUTE
+// TEST
 app.get("/api/test", (req, res) => {
   res.json({
     success: true,
@@ -27,10 +30,11 @@ app.get("/api/test", (req, res) => {
   });
 });
 
-// 🟢 MAIN GENERATE API
+// MAIN AI GENERATOR
 app.post("/api/generate", async (req, res) => {
   try {
-    const { topic, niche, engine } = req.body;
+
+    const { topic, language } = req.body;
 
     if (!topic) {
       return res.status(400).json({
@@ -38,67 +42,98 @@ app.post("/api/generate", async (req, res) => {
       });
     }
 
-    const result = {
-      title: `🔥 ${topic} Viral Story`,
-      topic: topic,
-      niche: niche || "General",
-      engine: engine || "groq",
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash"
+    });
 
-      description: `This is a viral AI generated story for ${topic}. Perfect for YouTube & Reels 🚀`,
+    const prompt = `
+You are a professional viral YouTube Shorts AI.
 
-      hashtags: [
-        "#viral",
-        "#teeniwood",
-        "#ai",
-        "#youtube",
-        "#reels"
-      ],
+Generate highly engaging content in ${language || "Hindi"}.
 
-      tags: [
-        "viral story",
-        "ai video",
-        "youtube shorts",
-        "trending",
-        "teeniwood ai"
-      ],
+TOPIC: ${topic}
 
-      hooks: [
-        "😱 You won't believe this story!",
-        "🔥 Emotional viral twist incoming!",
-        "🚀 This will blow your mind!"
-      ],
+Return ONLY valid JSON:
 
-      script: [
-        {
-          scene: "0-5 sec",
-          text: `Hook scene about ${topic}`,
-          visual: "Cinematic dramatic intro"
-        },
-        {
-          scene: "5-10 sec",
-          text: "Story begins with emotional setup",
-          visual: "Village / cinematic background"
-        },
-        {
-          scene: "10-15 sec",
-          text: "Conflict and struggle begins",
-          visual: "Dramatic tension scene"
-        }
-      ]
-    };
+{
+  "title": "",
+  "seo_keywords": [],
+  "viral_score": 0,
+  "story": "",
+  "hashtags": [],
+  "tags": [],
+  "hooks": [],
+  "thumbnail_prompt": "",
+  "scenes": [
+    {
+      "time": "0-5 sec",
+      "visual": "",
+      "voice_over": ""
+    },
+    {
+      "time": "5-10 sec",
+      "visual": "",
+      "voice_over": ""
+    },
+    {
+      "time": "10-15 sec",
+      "visual": "",
+      "voice_over": ""
+    },
+    {
+      "time": "15-20 sec",
+      "visual": "",
+      "voice_over": ""
+    },
+    {
+      "time": "20-25 sec",
+      "visual": "",
+      "voice_over": ""
+    }
+  ]
+}
+
+Rules:
+- Must be emotional and viral
+- SEO optimized
+- Easy Hindi/English mix if needed
+- Each scene 5 seconds
+- Must include strong hook
+`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    let parsed;
+
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      parsed = {
+        title: topic,
+        seo_keywords: [],
+        viral_score: 50,
+        story: text,
+        hashtags: [],
+        tags: [],
+        hooks: [],
+        thumbnail_prompt: "",
+        scenes: []
+      };
+    }
 
     res.json({
       success: true,
-      content: result
+      content: parsed
     });
 
   } catch (error) {
-
     console.error(error);
 
     res.status(500).json({
-      error: "Server error",
-      details: error.message
+      success: false,
+      error: error.message
     });
   }
 });
