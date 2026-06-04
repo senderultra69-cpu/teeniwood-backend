@@ -64,7 +64,7 @@ app.post("/api/generate", async (req, res) => {
     // ================= GEMINI =================
     if (engine === "gemini") {
       const model = genAI.getGenerativeModel({
-        model: "gemini-1.5-flash"
+        model: "gemini-1.5-flash-latest"
       });
 
       const result = await model.generateContent(
