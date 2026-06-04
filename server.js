@@ -17,16 +17,16 @@ const completion = await groq.chat.completions.create({
   messages: [
     {
       role: "system",
-      content: `Return ONLY valid JSON.
+      content: `Return ONLY valid JSON:
 ```
 
 {
-"title":"",
-"description":"",
-"hashtags":[],
-"tags":[],
-"hooks":[],
-"script":[]
+"title": "",
+"description": "",
+"hashtags": [],
+"tags": [],
+"hooks": [],
+"script": []
 }`        },
         {
           role: "user",
