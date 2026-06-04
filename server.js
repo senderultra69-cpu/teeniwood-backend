@@ -1,38 +1,3 @@
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
-import Groq from "groq-sdk";
-
-dotenv.config();
-
-const app = express();
-
-app.use(cors());
-app.use(express.json());
-
-const PORT = process.env.PORT || 3000;
-
-const groq = new Groq({
-apiKey: process.env.GROQ_API_KEY
-});
-
-// Health Check
-app.get("/", (req, res) => {
-res.json({
-status: "TeeniWood AI Backend Running 🚀",
-time: new Date().toISOString()
-});
-});
-
-// Test Route
-app.get("/api/test", (req, res) => {
-res.json({
-success: true,
-message: "Backend Working 🚀"
-});
-});
-
-// AI Generate Route
 app.post("/api/generate", async (req, res) => {
 
 try {
@@ -52,12 +17,8 @@ const completion = await groq.chat.completions.create({
   messages: [
     {
       role: "system",
-      content: `
+      content: `Return ONLY valid JSON.
 ```
-
-Return ONLY valid JSON.
-
-Format:
 
 {
 "title":"",
@@ -66,14 +27,10 @@ Format:
 "tags":[],
 "hooks":[],
 "script":[]
-}
-`        },
+}`        },
         {
           role: "user",
-          content:`
-Create viral YouTube content for:
-
-Topic: ${topic}
+          content:`Create viral YouTube content for topic: ${topic}
 
 Generate:
 
@@ -84,15 +41,13 @@ Generate:
 * 3 Hooks
 * 5 Script Scenes
 
-Return JSON only.
-`
+Return JSON only.`
 }
 ]
 });
 
 ```
-const raw =
-  completion.choices[0].message.content;
+const raw = completion.choices[0].message.content;
 
 let parsed;
 
@@ -128,10 +83,4 @@ res.status(500).json({
 
 }
 
-});
-
-app.listen(PORT, () => {
-console.log(
-`TeeniWood AI running on port ${PORT}`
-);
 });
