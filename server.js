@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
 dotenv.config();
 
@@ -11,9 +10,6 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
-
-// Gemini setup
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // 🟢 HEALTH CHECK
 app.get("/", (req, res) => {
@@ -31,11 +27,10 @@ app.get("/api/test", (req, res) => {
   });
 });
 
-// 🟢 MAIN GENERATE API (UPGRADED)
+// 🟢 MAIN GENERATE API
 app.post("/api/generate", async (req, res) => {
   try {
-
-    const { topic, language } = req.body;
+    const { topic, niche, engine } = req.body;
 
     if (!topic) {
       return res.status(400).json({
@@ -43,86 +38,67 @@ app.post("/api/generate", async (req, res) => {
       });
     }
 
-    const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash"
-    });
+    const result = {
+      title: `🔥 ${topic} Viral Story`,
+      topic: topic,
+      niche: niche || "General",
+      engine: engine || "groq",
 
-    const prompt = `
-You are a viral YouTube Shorts AI.
+      description: `This is a viral AI generated story for ${topic}. Perfect for YouTube & Reels 🚀`,
 
-Generate content in ${language || "Hindi"}.
+      hashtags: [
+        "#viral",
+        "#teeniwood",
+        "#ai",
+        "#youtube",
+        "#reels"
+      ],
 
-TOPIC: ${topic}
+      tags: [
+        "viral story",
+        "ai video",
+        "youtube shorts",
+        "trending",
+        "teeniwood ai"
+      ],
 
-Return ONLY valid JSON:
+      hooks: [
+        "😱 You won't believe this story!",
+        "🔥 Emotional viral twist incoming!",
+        "🚀 This will blow your mind!"
+      ],
 
-{
-  "title": "",
-  "seo_keywords": [],
-  "story": "",
-  "viral_score": 0,
-  "hashtags": [],
-  "tags": [],
-  "hooks": [],
-  "thumbnail_prompt": "",
-  "scenes": [
-    {
-      "time": "0-5 sec",
-      "visual": "",
-      "voice_over": ""
-    },
-    {
-      "time": "5-10 sec",
-      "visual": "",
-      "voice_over": ""
-    },
-    {
-      "time": "10-15 sec",
-      "visual": "",
-      "voice_over": ""
-    },
-    {
-      "time": "15-20 sec",
-      "visual": "",
-      "voice_over": ""
-    }
-  ]
-}
-`;
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-
-    let parsed;
-
-    try {
-      parsed = JSON.parse(text);
-    } catch {
-      parsed = {
-        title: topic,
-        seo_keywords: [],
-        story: text,
-        viral_score: 50,
-        hashtags: [],
-        tags: [],
-        hooks: [],
-        thumbnail_prompt: "",
-        scenes: []
-      };
-    }
+      script: [
+        {
+          scene: "0-5 sec",
+          text: `Hook scene about ${topic}`,
+          visual: "Cinematic dramatic intro"
+        },
+        {
+          scene: "5-10 sec",
+          text: "Story begins with emotional setup",
+          visual: "Village / cinematic background"
+        },
+        {
+          scene: "10-15 sec",
+          text: "Conflict and struggle begins",
+          visual: "Dramatic tension scene"
+        }
+      ]
+    };
 
     res.json({
       success: true,
-      content: parsed
+      content: result
     });
 
   } catch (error) {
+
     console.error(error);
 
     res.status(500).json({
-      success: false,
-      error: error.message
+      error: "Server error",
+      details: error.message
     });
   }
 });
