@@ -13,9 +13,8 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 
-// 🔥 AI SETUP
+// 🔥 AI CLIENTS (same as python test)
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY
 });
@@ -28,127 +27,77 @@ app.get("/", (req, res) => {
   });
 });
 
-// 🟢 TEST ROUTE
-app.get("/api/test", (req, res) => {
+// 🟢 TEST ROUTE (Python match style)
+app.get("/api/test", async (req, res) => {
   res.json({
     success: true,
     message: "Backend Working 🚀"
   });
 });
 
-// 🟢 MAIN GENERATE API
+// 🟢 MAIN GENERATE API (PYTHON MATCH STYLE)
 app.post("/api/generate", async (req, res) => {
   try {
 
-    const { topic, niche, engine, language } = req.body;
+    const { topic, engine, language } = req.body;
 
-    if (!topic) {
-      return res.status(400).json({
-        error: "Topic required"
-      });
-    }
+    const PROMPT = topic || "Hello, tell me your model name.";
 
-    let text = "";
+    let geminiResult = null;
+    let groqResult = null;
 
-    // 🔵 GEMINI
-    if (!engine || engine === "gemini") {
-
+    // =========================
+    // 🔵 GEMINI TEST
+    // =========================
+    try {
       const model = genAI.getGenerativeModel({
         model: "gemini-1.5-flash"
       });
 
-      const result = await model.generateContent(`
-Generate viral YouTube Shorts content in ${language || "Hindi"}.
-
-IMPORTANT: Return ONLY valid JSON. No markdown, no explanation.
-
-{
-  "title": "",
-  "description": "",
-  "seo_keywords": [],
-  "hashtags": [],
-  "tags": [],
-  "hooks": [],
-  "viral_score": 0,
-  "script": []
-}
-`);
-
+      const result = await model.generateContent(PROMPT);
       const response = await result.response;
-      text = response.text();
+      geminiResult = response.text();
+
+      console.log("✅ GEMINI SUCCESS");
+    } catch (e) {
+      geminiResult = null;
+      console.log("❌ GEMINI FAILED:", e.message);
     }
 
-    // 🟢 GROQ
-    else if (engine === "groq") {
-
+    // =========================
+    // 🟢 GROQ TEST
+    // =========================
+    try {
       const completion = await groq.chat.completions.create({
         model: "llama-3.3-70b-versatile",
         messages: [
-          {
-            role: "user",
-            content: `Create viral YouTube Shorts STRICT JSON ONLY for topic: ${topic}`
-          }
+          { role: "user", content: PROMPT }
         ]
       });
 
-      text = completion.choices[0].message.content;
-    }
+      groqResult = completion.choices[0].message.content;
 
-    // 🧹 CLEAN OUTPUT (IMPORTANT FIX)
-    let cleanText = text
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
-
-    let parsed;
-
-    try {
-      parsed = JSON.parse(cleanText);
+      console.log("✅ GROQ SUCCESS");
     } catch (e) {
-      console.log("⚠ RAW OUTPUT:", cleanText);
-
-      parsed = {
-        title: `🔥 ${topic}`,
-        topic,
-        niche: niche || "General",
-        engine: engine || "gemini",
-
-        seo_keywords: [
-          `${topic} viral`,
-          `${topic} shorts`,
-          "youtube shorts"
-        ],
-
-        viral_score: 50,
-
-        description: cleanText || "No response",
-
-        hashtags: [
-          "#viral",
-          "#teeniwood",
-          "#shorts"
-        ],
-
-        tags: [
-          "viral",
-          "youtube shorts",
-          "ai video"
-        ],
-
-        hooks: [
-          "😱 You won't believe this!",
-          "🔥 Emotional story incoming!",
-          "🚀 Watch till end!"
-        ],
-
-        script: []
-      };
+      groqResult = null;
+      console.log("❌ GROQ FAILED:", e.message);
     }
 
+    // =========================
+    // 📦 FINAL RESPONSE (PYTHON STYLE)
+    // =========================
     res.json({
       success: true,
-      engine: engine || "gemini",
-      content: parsed
+
+      gemini: {
+        working: geminiResult ? true : false,
+        response: geminiResult
+      },
+
+      groq: {
+        working: groqResult ? true : false,
+        response: groqResult
+      }
     });
 
   } catch (error) {
