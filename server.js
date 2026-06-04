@@ -36,7 +36,7 @@ app.get("/api/test", (req, res) => {
   });
 });
 
-// 🟢 MAIN GENERATE API (DUAL AI)
+// 🟢 MAIN GENERATE API
 app.post("/api/generate", async (req, res) => {
   try {
 
@@ -60,9 +60,8 @@ app.post("/api/generate", async (req, res) => {
       const result = await model.generateContent(`
 Generate viral YouTube Shorts content in ${language || "Hindi"}.
 
-Topic: ${topic}
+IMPORTANT: Return ONLY valid JSON. No markdown, no explanation.
 
-Return ONLY JSON:
 {
   "title": "",
   "description": "",
@@ -87,7 +86,7 @@ Return ONLY JSON:
         messages: [
           {
             role: "user",
-            content: `Create viral YouTube Shorts JSON for topic: ${topic}`
+            content: `Create viral YouTube Shorts STRICT JSON ONLY for topic: ${topic}`
           }
         ]
       });
@@ -95,8 +94,8 @@ Return ONLY JSON:
       text = completion.choices[0].message.content;
     }
 
-    // 🧹 CLEAN RESPONSE
-    text = text
+    // 🧹 CLEAN OUTPUT (IMPORTANT FIX)
+    let cleanText = text
       .replace(/```json/g, "")
       .replace(/```/g, "")
       .trim();
@@ -104,16 +103,44 @@ Return ONLY JSON:
     let parsed;
 
     try {
-      parsed = JSON.parse(text);
+      parsed = JSON.parse(cleanText);
     } catch (e) {
+      console.log("⚠ RAW OUTPUT:", cleanText);
+
       parsed = {
         title: `🔥 ${topic}`,
-        description: text,
-        seo_keywords: [],
-        hashtags: [],
-        tags: [],
-        hooks: [],
+        topic,
+        niche: niche || "General",
+        engine: engine || "gemini",
+
+        seo_keywords: [
+          `${topic} viral`,
+          `${topic} shorts`,
+          "youtube shorts"
+        ],
+
         viral_score: 50,
+
+        description: cleanText || "No response",
+
+        hashtags: [
+          "#viral",
+          "#teeniwood",
+          "#shorts"
+        ],
+
+        tags: [
+          "viral",
+          "youtube shorts",
+          "ai video"
+        ],
+
+        hooks: [
+          "😱 You won't believe this!",
+          "🔥 Emotional story incoming!",
+          "🚀 Watch till end!"
+        ],
+
         script: []
       };
     }
