@@ -123,8 +123,6 @@ Seed: ${seed}
   for (const modelName of models) {
     try {
 
-      console.log("🔍 Trying Gemini:", modelName);
-
       const model = genAI.getGenerativeModel({
         model: modelName
       });
@@ -138,39 +136,24 @@ Seed: ${seed}
       text = response.text();
 
       success = true;
-
-      console.log(
-        "✅ Gemini Success:",
-        modelName
-      );
-
       break;
 
     } catch (err) {
-
       console.log(
-        "❌ Gemini Failed:",
+        "Gemini Failed:",
         modelName
       );
-
-      console.log(err.message);
     }
   }
 
   if (!success) {
     console.log(
-      "⚠ Gemini unavailable, switching to Groq"
+      "Switching to Groq..."
     );
   }
 }
 
 if (!text) {
-
-  if (!groq) {
-    throw new Error(
-      "Groq API Key missing"
-    );
-  }
 
   const completion =
     await groq.chat.completions.create({
@@ -230,8 +213,6 @@ return res.json({
 } catch (error) {
 
 ```
-console.error("🔥 ERROR:", error);
-
 return res.status(500).json({
   success: false,
   error: error.message,
