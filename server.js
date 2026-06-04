@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import Groq from "groq-sdk";
 
 dotenv.config();
@@ -13,18 +12,15 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 
-console.log("🚀 GEMINI KEY:", !!process.env.GEMINI_API_KEY);
 console.log("🚀 GROQ KEY:", !!process.env.GROQ_API_KEY);
-
-const genAI = process.env.GEMINI_API_KEY
-? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-: null;
 
 const groq = process.env.GROQ_API_KEY
 ? new Groq({
 apiKey: process.env.GROQ_API_KEY
 })
 : null;
+
+// ================= ROOT =================
 
 app.get("/", (req, res) => {
 res.json({
@@ -36,7 +32,6 @@ message: "TeeniWood API Running"
 app.get("/health", (req, res) => {
 res.json({
 status: "ok",
-gemini: !!process.env.GEMINI_API_KEY,
 groq: !!process.env.GROQ_API_KEY
 });
 });
@@ -46,6 +41,8 @@ res.json({
 success: true
 });
 });
+
+// ================= SAFE CONTENT =================
 
 function safeContent(topic = "Demo", raw = "") {
 return {
@@ -70,13 +67,14 @@ visual: "cinematic"
 };
 }
 
+// ================= GENERATE =================
+
 app.post("/api/generate", async (req, res) => {
 try {
 
 ```
 const {
   topic,
-  engine = "groq",
   language = "Hindi"
 } = req.body;
 
@@ -87,15 +85,20 @@ if (!topic) {
   });
 }
 
+if (!groq) {
+  throw new Error("GROQ_API_KEY missing");
+}
+
 const seed = Date.now();
-let text = "";
 
-if (engine === "gemini" && genAI) {
-
-  const prompt = `
+const completion =
+  await groq.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    messages: [
+      {
+        role: "user",
+        content: `Return ONLY valid JSON.
 ```
-
-Return ONLY valid JSON.
 
 Topic: ${topic}
 Language: ${language}
@@ -109,91 +112,18 @@ Seed: ${seed}
 "tags": [],
 "hooks": [],
 "script": []
-}
-`;
-
-```
-  const models = [
-    "gemini-2.0-flash",
-    "gemini-2.5-flash"
-  ];
-
-  let success = false;
-
-  for (const modelName of models) {
-    try {
-
-      const model = genAI.getGenerativeModel({
-        model: modelName
-      });
-
-      const result =
-        await model.generateContent(prompt);
-
-      const response =
-        await result.response;
-
-      text = response.text();
-
-      success = true;
-      break;
-
-    } catch (err) {
-      console.log(
-        "Gemini Failed:",
-        modelName
-      );
-    }
-  }
-
-  if (!success) {
-    console.log(
-      "Switching to Groq..."
-    );
-  }
-}
-
-if (!text) {
-
-  const completion =
-    await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      messages: [
-        {
-          role: "user",
-          content: `
-```
-
-Return ONLY JSON.
-
-Topic: ${topic}
-Language: ${language}
-Seed: ${seed}
-
-{
-"title": "",
-"description": "",
-"seo_keywords": [],
-"hashtags": [],
-"tags": [],
-"hooks": [],
-"script": []
-}
-`
+}`
 }
 ]
 });
 
 ````
-  text =
-    completion?.choices?.[0]?.message?.content ||
-    "";
-}
+const text =
+  completion?.choices?.[0]?.message?.content || "";
 
-let cleaned = (text || "")
+let cleaned = text
   .replace(/```json/g, "")
   .replace(/```/g, "")
-  .replace(/^[^{]*/, "")
   .trim();
 
 let data;
@@ -213,6 +143,8 @@ return res.json({
 } catch (error) {
 
 ```
+console.error("🔥 ERROR:", error);
+
 return res.status(500).json({
   success: false,
   error: error.message,
@@ -225,6 +157,8 @@ return res.status(500).json({
 
 }
 });
+
+// ================= START =================
 
 app.listen(PORT, () => {
 console.log(
