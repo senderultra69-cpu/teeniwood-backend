@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
@@ -18,17 +19,24 @@ app.get("/", (req, res) => {
   });
 });
 
+// 🟢 TEST ROUTE
+app.get("/api/test", (req, res) => {
+  res.json({
+    success: true,
+    message: "Backend Working 🚀"
+  });
+});
+
 // 🟢 MAIN GENERATE API
 app.post("/api/generate", async (req, res) => {
   try {
     const { topic, niche, engine } = req.body;
 
     if (!topic) {
-      return res.status(400).json({ error: "Topic required" });
+      return res.status(400).json({
+        error: "Topic required"
+      });
     }
-
-    // 🎬 SIMPLE MOCK RESPONSE (TEMP)
-    // बाद में इसमें Groq/Gemini connect करेंगे
 
     const result = {
       title: `🔥 ${topic} Viral Story`,
@@ -38,9 +46,21 @@ app.post("/api/generate", async (req, res) => {
 
       description: `This is a viral AI generated story for ${topic}. Perfect for YouTube & Reels 🚀`,
 
-      hashtags: ["#viral", "#teeniwood", "#ai", "#youtube", "#reels"],
+      hashtags: [
+        "#viral",
+        "#teeniwood",
+        "#ai",
+        "#youtube",
+        "#reels"
+      ],
 
-      tags: ["viral story", "ai video", "youtube shorts", "trending", "teeniwood ai"],
+      tags: [
+        "viral story",
+        "ai video",
+        "youtube shorts",
+        "trending",
+        "teeniwood ai"
+      ],
 
       hooks: [
         "😱 You won't believe this story!",
@@ -73,6 +93,9 @@ app.post("/api/generate", async (req, res) => {
     });
 
   } catch (error) {
+
+    console.error(error);
+
     res.status(500).json({
       error: "Server error",
       details: error.message
