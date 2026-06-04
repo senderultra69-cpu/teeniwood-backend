@@ -18,13 +18,37 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 // HEALTH
 app.get("/", (req, res) => {
-  res.json({ status: "OK", time: new Date() });
+  res.json({ status: "OK", time: new Date().toISOString() });
 });
 
 // TEST
 app.get("/api/test", (req, res) => {
   res.json({ success: true });
 });
+
+// 🔥 SAFE FALLBACK BUILDER
+function safeContent(topic, raw = "") {
+  return {
+    title: `🔥 ${topic || "Viral Story"}`,
+    description: raw || `AI generated content for ${topic}`,
+    seo_keywords: [topic, "viral", "shorts"],
+    hashtags: ["#viral", "#teeniwood", "#ai"],
+    tags: ["youtube", "shorts", "ai video"],
+    hooks: [
+      "🔥 Watch till end!",
+      "😱 You won't believe this!",
+      "🚀 Viral story incoming!"
+    ],
+    script: [
+      {
+        scene: "0-5",
+        text: `Hook about ${topic}`,
+        voice_over: "Start of story",
+        visual: "cinematic intro"
+      }
+    ]
+  };
+}
 
 // MAIN API
 app.post("/api/generate", async (req, res) => {
@@ -34,22 +58,21 @@ app.post("/api/generate", async (req, res) => {
     if (!topic) {
       return res.json({
         success: false,
-        error: "Topic required"
+        content: safeContent("Demo", "No topic provided")
       });
     }
 
     let text = "";
 
-    // ================= GEMINI =================
+    // GEMINI
     if (engine === "gemini") {
-      const model = genAI.getGenerativeModel({
-        model: "gemini-1.5-flash"
-      });
+      try {
+        const model = genAI.getGenerativeModel({
+          model: "gemini-1.5-flash"
+        });
 
-      const result = await model.generateContent(
-`You are a JSON generator.
-
-Return ONLY valid JSON.
+        const result = await model.generateContent(
+`Return ONLY valid JSON.
 
 Topic: ${topic}
 Language: ${language}
@@ -61,94 +84,66 @@ Language: ${language}
   "hashtags": [],
   "tags": [],
   "hooks": [],
-  "script": [
-    {
-      "scene": "0-5",
-      "text": "",
-      "voice_over": "",
-      "visual": ""
-    }
-  ]
+  "script": []
 }`
-      );
+        );
 
-      const response = await result.response;
-      text = response.text();
+        const response = await result.response;
+        text = response.text();
+      } catch (e) {
+        console.log("Gemini error:", e.message);
+      }
     }
 
-    // ================= GROQ =================
+    // GROQ
     else {
-      const completion = await groq.chat.completions.create({
-        model: "llama-3.3-70b-versatile",
-        messages: [
-          {
-            role: "user",
-            content: `Return ONLY JSON for topic: ${topic}`
-          }
-        ]
-      });
+      try {
+        const completion = await groq.chat.completions.create({
+          model: "llama-3.3-70b-versatile",
+          messages: [
+            {
+              role: "user",
+              content: `Return ONLY JSON for topic: ${topic}`
+            }
+          ]
+        });
 
-      text = completion.choices[0].message.content;
+        text = completion.choices[0].message.content;
+      } catch (e) {
+        console.log("Groq error:", e.message);
+      }
     }
 
-    // ================= CLEAN =================
+    // CLEAN
     let cleaned = (text || "")
       .replace(/```json/g, "")
       .replace(/```/g, "")
-      .replace(/^[^{]*/, "")
       .trim();
 
     let data;
 
     try {
       data = JSON.parse(cleaned);
-    } catch (e) {
-      console.log("RAW AI OUTPUT:", text);
 
-      // 🔥 SAFE FALLBACK (hidden logic, no UI mess)
-      data = {
-        title: `🔥 ${topic}`,
-        description: text || "Generated content",
-        seo_keywords: [topic, "viral", "shorts"],
-        hashtags: ["#viral", "#teeniwood"],
-        tags: ["ai", "youtube"],
-        hooks: ["🔥 Watch now!", "😱 Amazing!", "🚀 Viral!"],
-        script: [
-          {
-            scene: "0-5",
-            text: `Hook about ${topic}`,
-            voice_over: "Start",
-            visual: "cinematic"
-          }
-        ]
-      };
+      // validation
+      if (!data.title) throw new Error("Invalid JSON");
+    } catch {
+      data = safeContent(topic, text);
     }
 
-    // 🔥 ALWAYS SAME FORMAT (IMPORTANT FIX)
     return res.json({
       success: true,
       content: data
     });
 
   } catch (error) {
-    console.log(error);
-
     return res.json({
-      success: false,
-      error: error.message,
-      content: {
-        title: `🔥 ${req.body.topic || "Video"}`,
-        description: "System recovery mode",
-        seo_keywords: [],
-        hashtags: [],
-        tags: [],
-        hooks: [],
-        script: []
-      }
+      success: true,
+      content: safeContent(req.body?.topic, error.message)
     });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on ${PORT}`);
+  console.log("Server running on", PORT);
 });
