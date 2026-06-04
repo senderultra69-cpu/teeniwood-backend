@@ -12,7 +12,7 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 
-// Gemini setup (ADDED)
+// Gemini setup
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // 🟢 HEALTH CHECK
@@ -31,7 +31,7 @@ app.get("/api/test", (req, res) => {
   });
 });
 
-// 🟢 MAIN GENERATE API (UPDATED WITH GEMINI)
+// 🟢 MAIN GENERATE API
 app.post("/api/generate", async (req, res) => {
   try {
 
@@ -53,26 +53,20 @@ You are a viral YouTube Shorts AI.
 Topic: ${topic}
 Language: ${language || "Hindi"}
 
-Return ONLY valid JSON. No explanation.
-
-Generate UNIQUE content every time.
+Return ONLY valid JSON. No markdown, no explanation.
 
 {
   "title": "",
   "topic": "${topic}",
   "niche": "${niche || "General"}",
   "engine": "gemini",
-
   "seo_keywords": [],
   "viral_score": 0,
-
   "description": "",
   "hashtags": [],
   "tags": [],
   "hooks": [],
-
   "thumbnail_prompt": "",
-
   "script": [
     {
       "scene": "0-5 sec",
@@ -98,13 +92,21 @@ Generate UNIQUE content every time.
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    const text = response.text();
+    let text = response.text();
+
+    // 🔥 CLEAN GEMINI OUTPUT (IMPORTANT FIX)
+    text = text
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
 
     let parsed;
 
     try {
       parsed = JSON.parse(text);
-    } catch {
+    } catch (e) {
+      console.log("RAW GEMINI OUTPUT:", text);
+
       parsed = {
         title: `🔥 ${topic} Viral Story`,
         topic,
