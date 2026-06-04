@@ -20,6 +20,8 @@ apiKey: process.env.GROQ_API_KEY
 })
 : null;
 
+// ================= ROOT =================
+
 app.get("/", (req, res) => {
 res.json({
 status: "OK",
@@ -40,9 +42,11 @@ success: true
 });
 });
 
+// ================= SAFE CONTENT =================
+
 function safeContent(topic = "Demo", raw = "") {
 return {
-title: `🔥 ${topic}`,
+title: "🔥 " + topic,
 description: raw || "AI generated content",
 seo_keywords: [topic, "viral", "ai"],
 hashtags: ["#viral", "#ai", "#shorts"],
@@ -53,18 +57,26 @@ hooks: [
 "🚀 Viral Story!"
 ],
 script: Array.from({ length: 10 }, (_, i) => ({
-scene: `Scene ${i + 1}`,
-video_prompt: `Ultra cinematic 5-second short video, 4K quality, dramatic lighting, emotional atmosphere about ${topic}. Scene ${i + 1}. Hollywood cinematic, shallow depth of field, film grain, dramatic color grading, ultra realistic, 9:16 vertical format.`,
-voice_over: `Narration for scene ${i + 1}`
+scene: "Scene " + (i + 1),
+video_prompt:
+"Ultra cinematic 5-second short video, 4K quality, dramatic lighting, emotional atmosphere about " +
+topic +
+". Scene " +
+(i + 1) +
+". Hollywood cinematic, shallow depth of field, film grain, dramatic color grading, ultra realistic, 9:16 vertical format.",
+voice_over: "Narration for scene " + (i + 1)
 }))
 };
 }
+
+// ================= GENERATE =================
 
 app.post("/api/generate", async (req, res) => {
 try {
 
 ```
-const { topic, language = "Hindi" } = req.body;
+const topic = req.body.topic;
+const language = req.body.language || "Hindi";
 
 if (!topic) {
   return res.json({
@@ -79,10 +91,10 @@ if (!groq) {
 
 const seed = Date.now();
 
-const prompt = `
+const prompt =
 ```
 
-Return ONLY valid JSON.
+`Return ONLY valid JSON.
 
 Topic: ${topic}
 Language: ${language}
@@ -107,29 +119,23 @@ Seed: ${seed}
 IMPORTANT:
 
 * Generate EXACTLY 10 scenes.
-
-* script must contain 10 objects.
-
+* Script must contain 10 objects.
 * Every object must contain:
   scene
   video_prompt
   voice_over
-
-* Every video_prompt must be:
-  Ultra cinematic
-  4K quality
-  Hollywood style
-  Dramatic lighting
-  Emotional storytelling
-  Ultra realistic
-  9:16 vertical format
-
+* Every video_prompt should be ultra cinematic.
+* 4K quality.
+* Hollywood style.
+* Dramatic lighting.
+* Emotional storytelling.
+* Ultra realistic.
+* 9:16 vertical format.
 * Story must continue from Scene 1 to Scene 10.
+* Return ONLY valid JSON.`;
 
-* Return ONLY valid JSON.
-  `;
-
-  const completion = await groq.chat.completions.create({
+  const completion =
+  await groq.chat.completions.create({
   model: "llama-3.3-70b-versatile",
   messages: [
   {
@@ -160,9 +166,15 @@ IMPORTANT:
   }
 
   data.script = data.script.map((item, index) => ({
-    scene: item.scene || `Scene ${index + 1}`,
-    video_prompt: item.video_prompt || "",
-    voice_over: item.voice_over || ""
+    scene:
+      item.scene ||
+      "Scene " + (index + 1),
+
+    video_prompt:
+      item.video_prompt || "",
+
+    voice_over:
+      item.voice_over || ""
   }));
   ```
 
@@ -196,6 +208,8 @@ IMPORTANT:
   });
   }
   });
+
+// ================= START =================
 
 app.listen(PORT, () => {
 console.log("🚀 Server running on port", PORT);
