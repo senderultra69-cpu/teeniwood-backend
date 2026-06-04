@@ -12,15 +12,15 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 
-// DEBUG ENV CHECK
-console.log("GEMINI KEY LOADED:", !!process.env.GEMINI_API_KEY);
-console.log("GROQ KEY LOADED:", !!process.env.GROQ_API_KEY);
+// ================= ENV DEBUG =================
+console.log("🚀 GEMINI KEY:", !!process.env.GEMINI_API_KEY);
+console.log("🚀 GROQ KEY:", !!process.env.GROQ_API_KEY);
 
-// AI SETUP
+// ================= AI SETUP =================
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-// HEALTH
+// ================= HEALTH =================
 app.get("/", (req, res) => {
   res.json({ status: "OK", time: new Date().toISOString() });
 });
@@ -29,15 +29,23 @@ app.get("/api/test", (req, res) => {
   res.json({ success: true });
 });
 
-// SAFE FALLBACK
+// ================= DEBUG =================
+app.get("/debug", (req, res) => {
+  res.json({
+    gemini: !!process.env.GEMINI_API_KEY,
+    groq: !!process.env.GROQ_API_KEY
+  });
+});
+
+// ================= SAFE FALLBACK =================
 function safeContent(topic = "Demo", raw = "") {
   return {
     title: `🔥 ${topic}`,
-    description: raw || `AI generated content`,
+    description: raw || "AI generated content",
     seo_keywords: [topic, "viral", "ai"],
     hashtags: ["#viral", "#ai", "#shorts"],
-    tags: ["youtube", "ai", "video"],
-    hooks: ["🔥 Watch till end!", "😱 Must see!", "🚀 Viral story!"],
+    tags: ["youtube", "ai"],
+    hooks: ["🔥 Watch till end!", "😱 Crazy!", "🚀 Viral story!"],
     script: [
       {
         scene: "0-5",
@@ -49,7 +57,7 @@ function safeContent(topic = "Demo", raw = "") {
   };
 }
 
-// MAIN API
+// ================= MAIN API =================
 app.post("/api/generate", async (req, res) => {
   try {
     const { topic, engine = "gemini", language = "Hindi" } = req.body;
@@ -110,10 +118,11 @@ Seed: ${seed}`
       text = completion.choices[0].message.content;
     }
 
-    // CLEAN JSON
+    // ================= CLEAN JSON =================
     let cleaned = (text || "")
       .replace(/```json/g, "")
       .replace(/```/g, "")
+      .replace(/^[^{]*/, "") // FIX IMPORTANT
       .trim();
 
     let data;
@@ -121,25 +130,27 @@ Seed: ${seed}`
     try {
       data = JSON.parse(cleaned);
     } catch (e) {
-      console.log("RAW OUTPUT:", text);
+      console.log("❌ RAW OUTPUT:", text);
       data = safeContent(topic, text);
     }
 
-    res.json({
+    return res.json({
       success: true,
       content: data
     });
 
   } catch (error) {
-    console.log("ERROR:", error.message);
+    console.log("❌ FULL ERROR:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
+      content: safeContent(req.body?.topic, error.message)
     });
   }
 });
 
+// ================= START SERVER =================
 app.listen(PORT, () => {
   console.log("🚀 Server running on port", PORT);
 });
