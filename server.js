@@ -132,7 +132,20 @@ app.post("/api/generate", async (req, res) => {
 Return ONLY valid JSON.
 
 Topic: ${topic}
-Language: ${language}
+
+Selected Language: ${language}
+
+IMPORTANT LANGUAGE RULES:
+- Generate ALL content strictly in ${language}.
+- Title must be in ${language}.
+- Description must be in ${language}.
+- Hooks must be in ${language}.
+- Voice_over must be in ${language}.
+- Do not mix languages.
+- If Urdu selected then output only Urdu.
+- If Hindi selected then output only Hindi.
+- If English selected then output only English.
+- Tags, hashtags and SEO keywords should match the selected language.
 
 {
   "title":"",
