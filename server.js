@@ -1,3 +1,4 @@
+````js
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -44,35 +45,29 @@ app.get("/api/test", (req, res) => {
 
 // ================= SAFE CONTENT =================
 
-function safeContent(topic = "Demo", raw = "") {
+function safeContent(topic = "Demo") {
   return {
-    title: `🔥 ${topic}`,
-    description: raw || "AI generated content",
+    title: "🔥 " + topic,
+    description: "AI generated cinematic story",
     seo_keywords: [topic, "viral", "ai"],
     hashtags: ["#viral", "#ai", "#shorts"],
     tags: ["youtube", "ai"],
     hooks: [
       "🔥 Watch till end!",
-      "😱 Crazy!",
+      "😱 Unexpected ending!",
       "🚀 Viral story!"
     ],
-    script: [
-      {
-        scene: "0-5 sec",
-        text: `Hook: ${topic}`,
-        visual: "cinematic intro"
-      },
-      {
-        scene: "5-10 sec",
-        text: `Main story about ${topic}`,
-        visual: "story scene"
-      },
-      {
-        scene: "10-15 sec",
-        text: "Ending with call to action",
-        visual: "subscribe animation"
-      }
-    ]
+    script: Array.from({ length: 10 }, (_, i) => ({
+      scene: "Scene " + (i + 1),
+      video_prompt:
+        "Ultra cinematic 5-second short video, 4K quality, dramatic lighting, emotional atmosphere about " +
+        topic +
+        ". Scene " +
+        (i + 1) +
+        ". Hollywood cinematic, shallow depth of field, film grain, dramatic color grading, ultra realistic, 9:16 vertical format.",
+      voice_over:
+        "Narration for scene " + (i + 1)
+    }))
   };
 }
 
@@ -80,8 +75,8 @@ function safeContent(topic = "Demo", raw = "") {
 
 app.post("/api/generate", async (req, res) => {
   try {
-
-    const { topic, language = "Hindi" } = req.body;
+    const topic = req.body.topic;
+    const language = req.body.language || "Hindi";
 
     if (!topic) {
       return res.json({
@@ -94,58 +89,57 @@ app.post("/api/generate", async (req, res) => {
       throw new Error("GROQ_API_KEY missing");
     }
 
-    const seed = Date.now();
-
     const prompt = `
 Return ONLY valid JSON.
 
 Topic: ${topic}
 Language: ${language}
-Seed: ${seed}
 
 {
-  "title": "",
-  "description": "",
-  "seo_keywords": [],
-  "hashtags": [],
-  "tags": [],
-  "hooks": [],
-  "script": [
+  "title":"",
+  "description":"",
+  "seo_keywords":[],
+  "hashtags":[],
+  "tags":[],
+  "hooks":[],
+  "script":[
     {
-      "scene": "0-5 sec",
-      "text": "",
-      "visual": ""
-    },
-    {
-      "scene": "5-10 sec",
-      "text": "",
-      "visual": ""
-    },
-    {
-      "scene": "10-15 sec",
-      "text": "",
-      "visual": ""
+      "scene":"",
+      "video_prompt":"",
+      "voice_over":""
     }
   ]
 }
 
 IMPORTANT:
+- Generate EXACTLY 10 scenes.
+- script must contain 10 objects.
+- Every object must contain:
+  scene
+  video_prompt
+  voice_over
+- Story must continue from Scene 1 to Scene 10.
+- Every video_prompt must be ultra cinematic.
+- 4K quality.
+- Hollywood style.
+- Dramatic lighting.
+- Emotional atmosphere.
+- Ultra realistic.
+- 9:16 vertical format.
 - Return ONLY valid JSON.
-- script MUST be an array of objects.
-- Every script item must contain scene, text and visual.
-- Do NOT return script as string array.
 `;
 
-    const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      messages: [
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      temperature: 0.7
-    });
+    const completion =
+      await groq.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        temperature: 0.8
+      });
 
     const text =
       completion?.choices?.[0]?.message?.content || "";
@@ -158,34 +152,29 @@ IMPORTANT:
     let data;
 
     try {
-
       data = JSON.parse(cleaned);
 
-      if (Array.isArray(data.script)) {
-        data.script = data.script.map((item, index) => {
-
-          if (typeof item === "string") {
-            return {
-              scene: `Scene ${index + 1}`,
-              text: item,
-              visual: ""
-            };
-          }
-
-          return {
-            scene: item.scene || `Scene ${index + 1}`,
-            text: item.text || "",
-            visual: item.visual || ""
-          };
-        });
+      if (!Array.isArray(data.script)) {
+        data.script = [];
       }
 
-    } catch (e) {
+      data.script = data.script.map((item, index) => ({
+        scene:
+          item.scene ||
+          "Scene " + (index + 1),
 
+        video_prompt:
+          item.video_prompt || "",
+
+        voice_over:
+          item.voice_over || ""
+      }));
+
+    } catch (e) {
       console.log("JSON Parse Failed");
       console.log(text);
 
-      data = safeContent(topic, text);
+      data = safeContent(topic);
     }
 
     return res.json({
@@ -201,8 +190,7 @@ IMPORTANT:
       success: false,
       error: error.message,
       content: safeContent(
-        req.body?.topic || "Demo",
-        error.message
+        req.body?.topic || "Demo"
       )
     });
   }
@@ -213,3 +201,4 @@ IMPORTANT:
 app.listen(PORT, () => {
   console.log("🚀 Server running on port", PORT);
 });
+````
