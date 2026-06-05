@@ -135,7 +135,7 @@ Return ONLY valid JSON.
 
 Topic: ${topic}
 
-Selected Language: ${language}
+Selected Language: ${selectedLanguage}
 
 IMPORTANT LANGUAGE RULES:
 
@@ -163,11 +163,14 @@ Russian → Русский
 French → Français
 Spanish → Español
 German → Deutsch
-
+const selectedLanguage =
+  languageMap[language] || language;
 NEVER translate content into Hindi unless Hindi is selected.
 NEVER translate content into English unless English is selected.
 DO NOT mix languages.
 Every title, description, hook and voice_over must be written in the selected language.
+Write all text using the native script of ${selectedLanguage}.
+Do not use Latin/English characters unless required.
 
 {
   "title":"",
