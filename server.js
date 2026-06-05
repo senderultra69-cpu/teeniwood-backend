@@ -167,8 +167,16 @@ German → Deutsch
 NEVER translate content into Hindi unless Hindi is selected.
 NEVER translate content into English unless English is selected.
 DO NOT mix languages.
-Every title, description, hook and voice_over must be written in the selected language.
-Write all text using the native script of ${selectedLanguage}.
+
+Title must be in ${language}.
+Description must be in ${language}.
+Hooks must be in ${language}.
+Voice_over must be in ${language}.
+SEO keywords must be in ${language}.
+Tags must be in ${language}.
+Hashtags must be in ${language}.
+
+Write all text using the native script of ${language}.
 Do not use Latin/English characters unless required.
 
 {
@@ -216,7 +224,7 @@ const completion =
         content: prompt
       }
     ],
-    temperature: 0.5
+    temperature: 0.2
   });
 
     const text =
