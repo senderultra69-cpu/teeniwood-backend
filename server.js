@@ -117,6 +117,8 @@ app.post("/api/generate", async (req, res) => {
     const topic = req.body.topic;
     const language = req.body.language || "Hindi";
 
+console.log("🌍 Language:", language);
+
     if (!topic) {
       return res.json({
         success: false,
@@ -136,16 +138,36 @@ Topic: ${topic}
 Selected Language: ${language}
 
 IMPORTANT LANGUAGE RULES:
-- Generate ALL content strictly in ${language}.
-- Title must be in ${language}.
-- Description must be in ${language}.
-- Hooks must be in ${language}.
-- Voice_over must be in ${language}.
-- Do not mix languages.
-- If Urdu selected then output only Urdu.
-- If Hindi selected then output only Hindi.
-- If English selected then output only English.
-- Tags, hashtags and SEO keywords should match the selected language.
+
+Generate ALL content strictly in ${language}.
+
+Use native script of the selected language.
+
+Examples:
+
+Hindi → हिन्दी
+Urdu → اردو
+Arabic → العربية
+Bengali → বাংলা
+Tamil → தமிழ்
+Telugu → తెలుగు
+Gujarati → ગુજરાતી
+Punjabi → ਪੰਜਾਬੀ
+Malayalam → മലയാളം
+Kannada → ಕನ್ನಡ
+Marathi → मराठी
+Chinese → 中文
+Japanese → 日本語
+Korean → 한국어
+Russian → Русский
+French → Français
+Spanish → Español
+German → Deutsch
+
+NEVER translate content into Hindi unless Hindi is selected.
+NEVER translate content into English unless English is selected.
+DO NOT mix languages.
+Every title, description, hook and voice_over must be written in the selected language.
 
 {
   "title":"",
@@ -192,7 +214,7 @@ const completion =
         content: prompt
       }
     ],
-    temperature: 0.8
+    temperature: 0.5
   });
 
     const text =
