@@ -135,7 +135,7 @@ Return ONLY valid JSON.
 
 Topic: ${topic}
 
-Selected Language: ${selectedLanguage}
+Selected Language: ${language}
 
 IMPORTANT LANGUAGE RULES:
 
@@ -163,8 +163,7 @@ Russian → Русский
 French → Français
 Spanish → Español
 German → Deutsch
-const selectedLanguage =
-  languageMap[language] || language;
+
 NEVER translate content into Hindi unless Hindi is selected.
 NEVER translate content into English unless English is selected.
 DO NOT mix languages.
