@@ -47,15 +47,56 @@ app.get("/api/test", (req, res) => {
 function safeContent(topic = "Demo") {
   return {
     title: "🔥 " + topic,
-    description: "AI generated cinematic story",
-    seo_keywords: [topic, "viral", "ai"],
-    hashtags: ["#viral", "#ai", "#shorts"],
-    tags: ["youtube", "ai"],
+    description:
+      "This is a complete cinematic story about " +
+      topic +
+      ". Emotional storytelling with drama, suspense and inspiration.",
+
+    seo_keywords: [
+      topic,
+      "viral story",
+      "cinematic video",
+      "youtube shorts",
+      "ai video",
+      "storytelling",
+      "4k video",
+      "hollywood style",
+      "viral content",
+      "short film"
+    ],
+
+    hashtags: [
+      "#viral",
+      "#shorts",
+      "#story",
+      "#cinematic",
+      "#trending",
+      "#reels",
+      "#youtube",
+      "#ai",
+      "#motivation",
+      "#viralvideo"
+    ],
+
+    tags: [
+      topic,
+      "viral",
+      "shorts",
+      "story",
+      "cinematic",
+      "youtube",
+      "reels",
+      "ai"
+    ],
+
     hooks: [
       "🔥 Watch till end!",
       "😱 Unexpected ending!",
-      "🚀 Viral story!"
+      "🚀 Viral story!",
+      "💥 You won't believe this!",
+      "🎬 A story that changes everything!"
     ],
+
     script: Array.from({ length: 10 }, (_, i) => ({
       scene: "Scene " + (i + 1),
       video_prompt:
@@ -64,8 +105,7 @@ function safeContent(topic = "Demo") {
         ". Scene " +
         (i + 1) +
         ". Hollywood cinematic, shallow depth of field, film grain, dramatic color grading, ultra realistic, 9:16 vertical format.",
-      voice_over:
-        "Narration for scene " + (i + 1)
+      voice_over: "Narration for scene " + (i + 1)
     }))
   };
 }
@@ -112,11 +152,13 @@ Language: ${language}
 
 IMPORTANT:
 - Generate EXACTLY 10 scenes.
+- Generate EXACTLY 10 hooks.
+- Generate EXACTLY 20 SEO keywords.
+- Generate EXACTLY 30 hashtags.
+- Generate EXACTLY 25 tags.
+- Description minimum 500 words.
 - script must contain 10 objects.
-- Every object must contain:
-  scene
-  video_prompt
-  voice_over
+- Every object must contain scene, video_prompt and voice_over.
 - Story must continue from Scene 1 to Scene 10.
 - Every video_prompt must be ultra cinematic.
 - 4K quality.
@@ -128,17 +170,17 @@ IMPORTANT:
 - Return ONLY valid JSON.
 `;
 
-    const completion =
-      await groq.chat.completions.create({
-        model: "llama-3.3-70b-versatile",
-        messages: [
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        temperature: 0.8
-      });
+const completion =
+  await groq.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    messages: [
+      {
+        role: "user",
+        content: prompt
+      }
+    ],
+    temperature: 0.8
+  });
 
     const text =
       completion?.choices?.[0]?.message?.content || "";
